@@ -1,0 +1,214 @@
+name: Azure Sandbox Provisioning
+
+on:
+  workflow_dispatch:
+    inputs:
+      secret_manager_path:
+        description: 'Path to secret in Secret Manager'
+        required: true
+        type: string
+      subscription_id:
+        description: 'Azure Subscription ID'
+        required: true
+        type: string
+      tenant_id:
+        description: 'Azure Tenant ID'
+        required: true
+        type: string
+      client_id:
+        description: 'Service Principal Client ID'
+        required: true
+        type: string
+      slack_user_id:
+        description: 'Slack user ID for audit trail'
+        required: true
+        type: string
+      request_id:
+        description: 'Unique request identifier'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  id-token: write  # Required for OIDC
+
+jobs:
+  generate-manifests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      # - name: Authenticate to Google Cloud (if using GCP Secret Manager)
+      #   uses: google-github-actions/auth@v1
+      #   with:
+      #     workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+      #     service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+      
+      - name: Generate resource names
+        id: names
+        run: |
+          TIMESTAMP=$(date +%s)
+          RESOURCE_NAME="azure-sb-${{ inputs.slack_user_id }}-${TIMESTAMP}"
+          echo "resource_name=${RESOURCE_NAME}" >> $GITHUB_OUTPUT
+          echo "namespace=azure-sandboxes" >> $GITHUB_OUTPUT
+      
+      - name: Create ExternalSecret manifest
+        run: |
+          cat > manifests/externalsecrets/${{ steps.names.outputs.resource_name }}.yaml <<EOF
+          apiVersion: external-secrets.io/v1beta1
+          kind: ExternalSecret
+          metadata:
+            name: ${{ steps.names.outputs.resource_name }}
+            namespace: ${{ steps.names.outputs.namespace }}
+            labels:
+              app.kubernetes.io/managed-by: github-actions
+              provisioned-by: slack-bot
+              slack-user-id: ${{ inputs.slack_user_id }}
+              request-id: ${{ inputs.request_id }}
+          spec:
+            refreshInterval: 1h
+            secretStoreRef:
+              name: google-secret-manager  # or aws-secret-manager, azure-key-vault
+              kind: SecretStore
+            target:
+              name: ${{ steps.names.outputs.resource_name }}-credentials
+              creationPolicy: Owner
+            data:
+              - secretKey: ARM_SUBSCRIPTION_ID
+                remoteRef:
+                  key: ${{ inputs.secret_manager_path }}
+                  property: subscriptionId
+              - secretKey: ARM_TENANT_ID
+                remoteRef:
+                  key: ${{ inputs.secret_manager_path }}
+                  property: tenantId
+              - secretKey: ARM_CLIENT_ID
+                remoteRef:
+                  key: ${{ inputs.secret_manager_path }}
+                  property: clientId
+              - secretKey: ARM_CLIENT_SECRET
+                remoteRef:
+                  key: ${{ inputs.secret_manager_path }}
+                  property: clientSecret
+          EOF
+      
+      - name: Create Crossplane Workspace manifest
+        run: |
+          cat > manifests/workspaces/${{ steps.names.outputs.resource_name }}.yaml <<EOF
+          apiVersion: opentofu.upbound.io/v1beta1
+          kind: Workspace
+          metadata:
+            name: ${{ steps.names.outputs.resource_name }}
+            namespace: ${{ steps.names.outputs.namespace }}
+            annotations:
+              crossplane.io/external-name: ${{ steps.names.outputs.resource_name }}
+            labels:
+              app.kubernetes.io/managed-by: github-actions
+              provisioned-by: slack-bot
+              slack-user-id: ${{ inputs.slack_user_id }}
+              request-id: ${{ inputs.request_id }}
+          spec:
+            forProvider:
+              source: Remote
+              module: git::https://github.com/OasisSecurity/Solutions-Architecture
+              entrypoint: Labs/Azure/src
+              
+              env:
+                - name: ARM_SUBSCRIPTION_ID
+                  secretKeyRef:
+                    namespace: ${{ steps.names.outputs.namespace }}
+                    name: ${{ steps.names.outputs.resource_name }}-credentials
+                    key: ARM_SUBSCRIPTION_ID
+                - name: ARM_TENANT_ID
+                  secretKeyRef:
+                    namespace: ${{ steps.names.outputs.namespace }}
+                    name: ${{ steps.names.outputs.resource_name }}-credentials
+                    key: ARM_TENANT_ID
+                - name: ARM_CLIENT_ID
+                  secretKeyRef:
+                    namespace: ${{ steps.names.outputs.namespace }}
+                    name: ${{ steps.names.outputs.resource_name }}-credentials
+                    key: ARM_CLIENT_ID
+                - name: ARM_CLIENT_SECRET
+                  secretKeyRef:
+                    namespace: ${{ steps.names.outputs.namespace }}
+                    name: ${{ steps.names.outputs.resource_name }}-credentials
+                    key: ARM_CLIENT_SECRET
+              
+              vars:
+                - key: subscription_id
+                  value: "${{ inputs.subscription_id }}"
+                - key: tenant_id
+                  value: "${{ inputs.tenant_id }}"
+                - key: client_id
+                  value: "${{ inputs.client_id }}"
+                - key: location
+                  value: "East US"
+            
+            writeConnectionSecretToRef:
+              namespace: ${{ steps.names.outputs.namespace }}
+              name: ${{ steps.names.outputs.resource_name }}-outputs
+          EOF
+      
+      - name: Create ArgoCD Application manifest
+        run: |
+          cat > manifests/applications/${{ steps.names.outputs.resource_name }}-app.yaml <<EOF
+          apiVersion: argoproj.io/v1alpha1
+          kind: Application
+          metadata:
+            name: ${{ steps.names.outputs.resource_name }}
+            namespace: argocd
+            labels:
+              provisioned-by: slack-bot
+              slack-user-id: ${{ inputs.slack_user_id }}
+          spec:
+            project: azure-sandboxes
+            source:
+              repoURL: https://github.com/${{ github.repository }}
+              targetRevision: main
+              path: manifests
+              directory:
+                include: |
+                  externalsecrets/${{ steps.names.outputs.resource_name }}.yaml
+                  workspaces/${{ steps.names.outputs.resource_name }}.yaml
+            destination:
+              server: https://kubernetes.default.svc
+              namespace: ${{ steps.names.outputs.namespace }}
+            syncPolicy:
+              automated:
+                prune: true
+                selfHeal: true
+              syncOptions:
+                - CreateNamespace=true
+          EOF
+      
+      - name: Commit and push manifests
+        run: |
+          git config user.name "Azure Provisioning Bot"
+          git config user.email "bot@example.com"
+          git add manifests/
+          git commit -m "Add Azure sandbox for ${{ inputs.slack_user_id }} (request: ${{ inputs.request_id }})"
+          git push
+      
+      - name: Notify Slack (optional)
+        if: always()
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "Azure sandbox provisioning initiated",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Status:* ${{ job.status }}\n*Resource:* ${{ steps.names.outputs.resource_name }}\n*User:* <@${{ inputs.slack_user_id }}>"
+                  }
+                }
+              ]
+            }
