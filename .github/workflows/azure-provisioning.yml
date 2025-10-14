@@ -154,37 +154,37 @@ jobs:
               name: ${{ steps.names.outputs.resource_name }}-outputs
           EOF
       
-      - name: Create ArgoCD Application manifest
-        run: |
-          cat > manifests/applications/${{ steps.names.outputs.resource_name }}-app.yaml <<EOF
-          apiVersion: argoproj.io/v1alpha1
-          kind: Application
-          metadata:
-            name: ${{ steps.names.outputs.resource_name }}
-            namespace: argocd
-            labels:
-              provisioned-by: slack-bot
-              slack-user-id: ${{ inputs.slack_user_id }}
-          spec:
-            project: azure-sandboxes
-            source:
-              repoURL: https://github.com/${{ github.repository }}
-              targetRevision: main
-              path: manifests
-              directory:
-                include: |
-                  externalsecrets/${{ steps.names.outputs.resource_name }}.yaml
-                  workspaces/${{ steps.names.outputs.resource_name }}.yaml
-            destination:
-              server: https://kubernetes.default.svc
-              namespace: ${{ steps.names.outputs.namespace }}
-            syncPolicy:
-              automated:
-                prune: true
-                selfHeal: true
-              syncOptions:
-                - CreateNamespace=true
-          EOF
+      # - name: Create ArgoCD Application manifest
+      #   run: |
+      #     cat > manifests/applications/${{ steps.names.outputs.resource_name }}-app.yaml <<EOF
+      #     apiVersion: argoproj.io/v1alpha1
+      #     kind: Application
+      #     metadata:
+      #       name: ${{ steps.names.outputs.resource_name }}
+      #       namespace: argocd
+      #       labels:
+      #         provisioned-by: slack-bot
+      #         slack-user-id: ${{ inputs.slack_user_id }}
+      #     spec:
+      #       project: azure-sandboxes
+      #       source:
+      #         repoURL: https://github.com/${{ github.repository }}
+      #         targetRevision: main
+      #         path: manifests
+      #         directory:
+      #           include: |
+      #             externalsecrets/${{ steps.names.outputs.resource_name }}.yaml
+      #             workspaces/${{ steps.names.outputs.resource_name }}.yaml
+      #       destination:
+      #         server: https://kubernetes.default.svc
+      #         namespace: ${{ steps.names.outputs.namespace }}
+      #       syncPolicy:
+      #         automated:
+      #           prune: true
+      #           selfHeal: true
+      #         syncOptions:
+      #           - CreateNamespace=true
+      #     EOF
       
       - name: Commit and push manifests
         run: |
