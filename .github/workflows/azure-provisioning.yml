@@ -178,27 +178,22 @@ jobs:
                     namespace: ${{ steps.names.outputs.namespace }}
                     name: ${{ steps.names.outputs.resource_name }}-credentials
                     key: ARM_CLIENT_SECRET
-              
-              vars:
-                - key: subscription_id
-                  valueFrom:
-                    secretKeyRef:
-                      namespace: ${{ steps.names.outputs.namespace }}
-                      name: ${{ steps.names.outputs.resource_name }}-credentials
-                      key: subscription_id
-                - key: tenant_id
-                  valueFrom:
-                    secretKeyRef:
-                      namespace: ${{ steps.names.outputs.namespace }}
-                      name: ${{ steps.names.outputs.resource_name }}-credentials
-                      key: tenant_id
-                - key: client_id
-                  valueFrom:
-                    secretKeyRef:
-                      namespace: ${{ steps.names.outputs.namespace }}
-                      name: ${{ steps.names.outputs.resource_name }}-credentials
-                      key: client_id
-                - key: location
+                - name: TF_VAR_subscription_id
+                  secretKeyRef:
+                    namespace: ${{ steps.names.outputs.namespace }}
+                    name: ${{ steps.names.outputs.resource_name }}-credentials
+                    key: subscription_id
+                - name: TF_VAR_tenant_id
+                  secretKeyRef:
+                    namespace: ${{ steps.names.outputs.namespace }}
+                    name: ${{ steps.names.outputs.resource_name }}-credentials
+                    key: tenant_id
+                - name: TF_VAR_client_id
+                  secretKeyRef:
+                    namespace: ${{ steps.names.outputs.namespace }}
+                    name: ${{ steps.names.outputs.resource_name }}-credentials
+                    key: client_id
+                - name: TF_VAR_location
                   value: "East US"
             
             writeConnectionSecretToRef:
