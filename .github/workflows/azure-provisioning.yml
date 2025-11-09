@@ -58,6 +58,7 @@ jobs:
       
       - name: Create ExternalSecret manifest
         run: |
+          mkdir -p manifests/externalsecrets
           cat > manifests/externalsecrets/${{ steps.names.outputs.resource_name }}.yaml <<EOF
           apiVersion: external-secrets.io/v1beta1
           kind: ExternalSecret
@@ -98,6 +99,7 @@ jobs:
       
       - name: Create Crossplane Workspace manifest
         run: |
+          mkdir -p manifests/workspaces
           cat > manifests/workspaces/${{ steps.names.outputs.resource_name }}.yaml <<EOF
           apiVersion: opentofu.upbound.io/v1beta1
           kind: Workspace
