@@ -1,10 +1,10 @@
 apiVersion: opentofu.upbound.io/v1beta1
 kind: Workspace
 metadata:
-  name: azure-sb-u08kdt7fct1-1762714442
+  name: azure-sb-u08kdt7fct1-1762714433887
   namespace: azure-sandboxes
   annotations:
-    crossplane.io/external-name: azure-sb-u08kdt7fct1-1762714442
+    crossplane.io/external-name: azure-sb-u08kdt7fct1-1762714433887
   labels:
     app.kubernetes.io/managed-by: github-actions
     provisioned-by: slack-bot
@@ -20,34 +20,46 @@ spec:
       - name: ARM_SUBSCRIPTION_ID
         secretKeyRef:
           namespace: azure-sandboxes
-          name: azure-sb-u08kdt7fct1-1762714442-credentials
+          name: azure-sb-u08kdt7fct1-1762714433887-credentials
           key: ARM_SUBSCRIPTION_ID
       - name: ARM_TENANT_ID
         secretKeyRef:
           namespace: azure-sandboxes
-          name: azure-sb-u08kdt7fct1-1762714442-credentials
+          name: azure-sb-u08kdt7fct1-1762714433887-credentials
           key: ARM_TENANT_ID
       - name: ARM_CLIENT_ID
         secretKeyRef:
           namespace: azure-sandboxes
-          name: azure-sb-u08kdt7fct1-1762714442-credentials
+          name: azure-sb-u08kdt7fct1-1762714433887-credentials
           key: ARM_CLIENT_ID
       - name: ARM_CLIENT_SECRET
         secretKeyRef:
           namespace: azure-sandboxes
-          name: azure-sb-u08kdt7fct1-1762714442-credentials
+          name: azure-sb-u08kdt7fct1-1762714433887-credentials
           key: ARM_CLIENT_SECRET
     
     vars:
       - key: subscription_id
-        value: "d1acad57-9871-419d-9003-07e34965d522"
+        valueFrom:
+          secretKeyRef:
+            namespace: azure-sandboxes
+            name: azure-sb-u08kdt7fct1-1762714433887-credentials
+            key: subscription_id
       - key: tenant_id
-        value: "0f7f6aae-b13b-44a5-8f4e-10e9f2f6ec20"
+        valueFrom:
+          secretKeyRef:
+            namespace: azure-sandboxes
+            name: azure-sb-u08kdt7fct1-1762714433887-credentials
+            key: tenant_id
       - key: client_id
-        value: "c188c1fd-85bc-4fe1-813b-7fe7c96d5eff"
+        valueFrom:
+          secretKeyRef:
+            namespace: azure-sandboxes
+            name: azure-sb-u08kdt7fct1-1762714433887-credentials
+            key: client_id
       - key: location
         value: "East US"
   
   writeConnectionSecretToRef:
     namespace: azure-sandboxes
-    name: azure-sb-u08kdt7fct1-1762714442-outputs
+    name: azure-sb-u08kdt7fct1-1762714433887-outputs

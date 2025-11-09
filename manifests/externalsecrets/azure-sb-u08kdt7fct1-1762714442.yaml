@@ -1,7 +1,7 @@
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: azure-sb-u08kdt7fct1-1762714442
+  name: azure-sb-u08kdt7fct1-1762714433887
   namespace: azure-sandboxes
   labels:
     app.kubernetes.io/managed-by: github-actions
@@ -14,22 +14,34 @@ spec:
     name: google
     kind: ClusterSecretStore
   target:
-    name: azure-sb-u08kdt7fct1-1762714442-credentials
+    name: azure-sb-u08kdt7fct1-1762714433887-credentials
     creationPolicy: Owner
   data:
     - secretKey: ARM_SUBSCRIPTION_ID
       remoteRef:
-        key: projects/oasis-se-infra/secrets/azure-sandbox-U08KDT7FCT1-1762714433887
+        key: azure-sandbox-U08KDT7FCT1-1762714433887
         property: subscriptionId
     - secretKey: ARM_TENANT_ID
       remoteRef:
-        key: projects/oasis-se-infra/secrets/azure-sandbox-U08KDT7FCT1-1762714433887
+        key: azure-sandbox-U08KDT7FCT1-1762714433887
         property: tenantId
     - secretKey: ARM_CLIENT_ID
       remoteRef:
-        key: projects/oasis-se-infra/secrets/azure-sandbox-U08KDT7FCT1-1762714433887
+        key: azure-sandbox-U08KDT7FCT1-1762714433887
         property: clientId
     - secretKey: ARM_CLIENT_SECRET
       remoteRef:
-        key: projects/oasis-se-infra/secrets/azure-sandbox-U08KDT7FCT1-1762714433887
+        key: azure-sandbox-U08KDT7FCT1-1762714433887
         property: clientSecret
+    - secretKey: subscription_id
+      remoteRef:
+        key: azure-sandbox-U08KDT7FCT1-1762714433887
+        property: subscriptionId
+    - secretKey: tenant_id
+      remoteRef:
+        key: azure-sandbox-U08KDT7FCT1-1762714433887
+        property: tenantId
+    - secretKey: client_id
+      remoteRef:
+        key: azure-sandbox-U08KDT7FCT1-1762714433887
+        property: clientId

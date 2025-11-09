@@ -7,18 +7,6 @@ on:
         description: 'Path to secret in Secret Manager'
         required: true
         type: string
-      subscription_id:
-        description: 'Azure Subscription ID'
-        required: true
-        type: string
-      tenant_id:
-        description: 'Azure Tenant ID'
-        required: true
-        type: string
-      client_id:
-        description: 'Service Principal Client ID'
-        required: true
-        type: string
       slack_user_id:
         description: 'Slack user ID for audit trail'
         required: true
@@ -98,7 +86,7 @@ jobs:
         run: |
           mkdir -p manifests/externalsecrets
           cat > manifests/externalsecrets/${{ steps.names.outputs.resource_name }}.yaml <<EOF
-          apiVersion: external-secrets.io/v1beta1
+          apiVersion: external-secrets.io/v1
           kind: ExternalSecret
           metadata:
             name: ${{ steps.names.outputs.resource_name }}
@@ -133,6 +121,18 @@ jobs:
                 remoteRef:
                   key: ${{ inputs.secret_manager_path }}
                   property: clientSecret
+              - secretKey: subscription_id
+                remoteRef:
+                  key: ${{ inputs.secret_manager_path }}
+                  property: subscriptionId
+              - secretKey: tenant_id
+                remoteRef:
+                  key: ${{ inputs.secret_manager_path }}
+                  property: tenantId
+              - secretKey: client_id
+                remoteRef:
+                  key: ${{ inputs.secret_manager_path }}
+                  property: clientId
           EOF
       
       - name: Create Crossplane Workspace manifest
@@ -181,11 +181,23 @@ jobs:
               
               vars:
                 - key: subscription_id
-                  value: "${{ inputs.subscription_id }}"
+                  valueFrom:
+                    secretKeyRef:
+                      namespace: ${{ steps.names.outputs.namespace }}
+                      name: ${{ steps.names.outputs.resource_name }}-credentials
+                      key: subscription_id
                 - key: tenant_id
-                  value: "${{ inputs.tenant_id }}"
+                  valueFrom:
+                    secretKeyRef:
+                      namespace: ${{ steps.names.outputs.namespace }}
+                      name: ${{ steps.names.outputs.resource_name }}-credentials
+                      key: tenant_id
                 - key: client_id
-                  value: "${{ inputs.client_id }}"
+                  valueFrom:
+                    secretKeyRef:
+                      namespace: ${{ steps.names.outputs.namespace }}
+                      name: ${{ steps.names.outputs.resource_name }}-credentials
+                      key: client_id
                 - key: location
                   value: "East US"
             
