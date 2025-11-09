@@ -1,0 +1,53 @@
+apiVersion: opentofu.upbound.io/v1beta1
+kind: Workspace
+metadata:
+  name: azure-sb-u08kdt7fct1-1762714442
+  namespace: azure-sandboxes
+  annotations:
+    crossplane.io/external-name: azure-sb-u08kdt7fct1-1762714442
+  labels:
+    app.kubernetes.io/managed-by: github-actions
+    provisioned-by: slack-bot
+    slack-user-id: U08KDT7FCT1
+    request-id: 99f76166-8c29-4fed-a20b-015741f53052
+spec:
+  forProvider:
+    source: Remote
+    module: git::https://github.com/OasisSecurity/Solutions-Architecture
+    entrypoint: Labs/Azure/src
+    
+    env:
+      - name: ARM_SUBSCRIPTION_ID
+        secretKeyRef:
+          namespace: azure-sandboxes
+          name: azure-sb-u08kdt7fct1-1762714442-credentials
+          key: ARM_SUBSCRIPTION_ID
+      - name: ARM_TENANT_ID
+        secretKeyRef:
+          namespace: azure-sandboxes
+          name: azure-sb-u08kdt7fct1-1762714442-credentials
+          key: ARM_TENANT_ID
+      - name: ARM_CLIENT_ID
+        secretKeyRef:
+          namespace: azure-sandboxes
+          name: azure-sb-u08kdt7fct1-1762714442-credentials
+          key: ARM_CLIENT_ID
+      - name: ARM_CLIENT_SECRET
+        secretKeyRef:
+          namespace: azure-sandboxes
+          name: azure-sb-u08kdt7fct1-1762714442-credentials
+          key: ARM_CLIENT_SECRET
+    
+    vars:
+      - key: subscription_id
+        value: "d1acad57-9871-419d-9003-07e34965d522"
+      - key: tenant_id
+        value: "0f7f6aae-b13b-44a5-8f4e-10e9f2f6ec20"
+      - key: client_id
+        value: "c188c1fd-85bc-4fe1-813b-7fe7c96d5eff"
+      - key: location
+        value: "East US"
+  
+  writeConnectionSecretToRef:
+    namespace: azure-sandboxes
+    name: azure-sb-u08kdt7fct1-1762714442-outputs
