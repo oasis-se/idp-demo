@@ -1,0 +1,65 @@
+apiVersion: opentofu.upbound.io/v1beta1
+kind: Workspace
+metadata:
+  name: azure-sb-u08kdt7fct1-1762727634
+  namespace: azure-sandboxes
+  annotations:
+    crossplane.io/external-name: azure-sb-u08kdt7fct1-1762727634
+  labels:
+    app.kubernetes.io/managed-by: github-actions
+    provisioned-by: slack-bot
+    slack-user-id: U08KDT7FCT1
+    request-id: a874081d-46fc-4abe-bd96-e9677a19ccc5
+spec:
+  forProvider:
+    source: Remote
+    module: git::https://github.com/OasisSecurity/Solutions-Architecture
+    entrypoint: Labs/Azure/src
+    
+    env:
+      - name: ARM_SUBSCRIPTION_ID
+        secretKeyRef:
+          namespace: azure-sandboxes
+          name: azure-sb-u08kdt7fct1-1762727634-credentials
+          key: ARM_SUBSCRIPTION_ID
+      - name: ARM_TENANT_ID
+        secretKeyRef:
+          namespace: azure-sandboxes
+          name: azure-sb-u08kdt7fct1-1762727634-credentials
+          key: ARM_TENANT_ID
+      - name: ARM_CLIENT_ID
+        secretKeyRef:
+          namespace: azure-sandboxes
+          name: azure-sb-u08kdt7fct1-1762727634-credentials
+          key: ARM_CLIENT_ID
+      - name: ARM_CLIENT_SECRET
+        secretKeyRef:
+          namespace: azure-sandboxes
+          name: azure-sb-u08kdt7fct1-1762727634-credentials
+          key: ARM_CLIENT_SECRET
+    
+    vars:
+      - key: subscription_id
+        valueFrom:
+          secretKeyRef:
+            namespace: azure-sandboxes
+            name: azure-sb-u08kdt7fct1-1762727634-credentials
+            key: subscription_id
+      - key: tenant_id
+        valueFrom:
+          secretKeyRef:
+            namespace: azure-sandboxes
+            name: azure-sb-u08kdt7fct1-1762727634-credentials
+            key: tenant_id
+      - key: client_id
+        valueFrom:
+          secretKeyRef:
+            namespace: azure-sandboxes
+            name: azure-sb-u08kdt7fct1-1762727634-credentials
+            key: client_id
+      - key: location
+        value: "East US"
+  
+  writeConnectionSecretToRef:
+    namespace: azure-sandboxes
+    name: azure-sb-u08kdt7fct1-1762727634-outputs
