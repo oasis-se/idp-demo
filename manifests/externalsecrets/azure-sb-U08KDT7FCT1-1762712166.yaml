@@ -1,0 +1,35 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: azure-sb-U08KDT7FCT1-1762712166
+  namespace: azure-sandboxes
+  labels:
+    app.kubernetes.io/managed-by: github-actions
+    provisioned-by: slack-bot
+    slack-user-id: U08KDT7FCT1
+    request-id: 630c39db-19c4-4f42-825c-31516a916b00
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: google-secret-manager  # or aws-secret-manager, azure-key-vault
+    kind: SecretStore
+  target:
+    name: azure-sb-U08KDT7FCT1-1762712166-credentials
+    creationPolicy: Owner
+  data:
+    - secretKey: ARM_SUBSCRIPTION_ID
+      remoteRef:
+        key: projects/oasis-se-infra/secrets/azure-sandbox-U08KDT7FCT1-1762712160072
+        property: subscriptionId
+    - secretKey: ARM_TENANT_ID
+      remoteRef:
+        key: projects/oasis-se-infra/secrets/azure-sandbox-U08KDT7FCT1-1762712160072
+        property: tenantId
+    - secretKey: ARM_CLIENT_ID
+      remoteRef:
+        key: projects/oasis-se-infra/secrets/azure-sandbox-U08KDT7FCT1-1762712160072
+        property: clientId
+    - secretKey: ARM_CLIENT_SECRET
+      remoteRef:
+        key: projects/oasis-se-infra/secrets/azure-sandbox-U08KDT7FCT1-1762712160072
+        property: clientSecret
