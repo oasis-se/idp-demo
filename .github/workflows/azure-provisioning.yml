@@ -52,9 +52,47 @@ jobs:
         id: names
         run: |
           TIMESTAMP=$(date +%s)
-          RESOURCE_NAME="azure-sb-${{ inputs.slack_user_id }}-${TIMESTAMP}"
+          # Convert slack_user_id to lowercase and sanitize for RFC 1123 compliance
+          # RFC 1123: lowercase alphanumeric, hyphens allowed, must start/end with alphanumeric
+          SANITIZED_USER_ID=$(echo "${{ inputs.slack_user_id }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | sed 's/-\+/-/g' | sed 's/^[^a-z0-9]*//;s/[^a-z0-9]*$//')
+          # Ensure sanitized user ID is not empty (fallback to 'user')
+          if [ -z "${SANITIZED_USER_ID}" ]; then
+            SANITIZED_USER_ID="user"
+          fi
+          # Build resource name: azure-sb-{sanitized_user_id}-{timestamp}
+          # Kubernetes resource names have a 63 character limit
+          RESOURCE_NAME="azure-sb-${SANITIZED_USER_ID}-${TIMESTAMP}"
+          # Truncate to 63 characters if needed (preserve timestamp at the end)
+          if [ ${#RESOURCE_NAME} -gt 63 ]; then
+            # Keep prefix and timestamp, truncate middle
+            PREFIX="azure-sb-"
+            MAX_USER_ID_LEN=$((63 - ${#PREFIX} - ${#TIMESTAMP} - 1))  # -1 for the hyphen
+            TRUNCATED_USER_ID="${SANITIZED_USER_ID:0:$MAX_USER_ID_LEN}"
+            RESOURCE_NAME="${PREFIX}${TRUNCATED_USER_ID}-${TIMESTAMP}"
+          fi
+          # Sanitize label values for Kubernetes compliance
+          # Label values: alphanumeric, hyphens, underscores, dots; must start/end with alphanumeric; max 63 chars
+          # Preserve original values as much as possible for audit purposes
+          SANITIZED_SLACK_USER_ID=$(echo "${{ inputs.slack_user_id }}" | sed 's/[^a-zA-Z0-9._-]/-/g' | sed 's/-\+/-/g' | sed 's/^[^a-zA-Z0-9]*//;s/[^a-zA-Z0-9]*$//')
+          # Fallback if sanitization results in empty string
+          if [ -z "${SANITIZED_SLACK_USER_ID}" ]; then
+            SANITIZED_SLACK_USER_ID="unknown-user"
+          fi
+          if [ ${#SANITIZED_SLACK_USER_ID} -gt 63 ]; then
+            SANITIZED_SLACK_USER_ID="${SANITIZED_SLACK_USER_ID:0:63}"
+          fi
+          SANITIZED_REQUEST_ID=$(echo "${{ inputs.request_id }}" | sed 's/[^a-zA-Z0-9._-]/-/g' | sed 's/-\+/-/g' | sed 's/^[^a-zA-Z0-9]*//;s/[^a-zA-Z0-9]*$//')
+          # Fallback if sanitization results in empty string
+          if [ -z "${SANITIZED_REQUEST_ID}" ]; then
+            SANITIZED_REQUEST_ID="unknown-request"
+          fi
+          if [ ${#SANITIZED_REQUEST_ID} -gt 63 ]; then
+            SANITIZED_REQUEST_ID="${SANITIZED_REQUEST_ID:0:63}"
+          fi
           echo "resource_name=${RESOURCE_NAME}" >> $GITHUB_OUTPUT
           echo "namespace=azure-sandboxes" >> $GITHUB_OUTPUT
+          echo "sanitized_slack_user_id=${SANITIZED_SLACK_USER_ID}" >> $GITHUB_OUTPUT
+          echo "sanitized_request_id=${SANITIZED_REQUEST_ID}" >> $GITHUB_OUTPUT
       
       - name: Create ExternalSecret manifest
         run: |
@@ -68,13 +106,13 @@ jobs:
             labels:
               app.kubernetes.io/managed-by: github-actions
               provisioned-by: slack-bot
-              slack-user-id: ${{ inputs.slack_user_id }}
-              request-id: ${{ inputs.request_id }}
+              slack-user-id: ${{ steps.names.outputs.sanitized_slack_user_id }}
+              request-id: ${{ steps.names.outputs.sanitized_request_id }}
           spec:
             refreshInterval: 1h
             secretStoreRef:
-              name: google-secret-manager  # or aws-secret-manager, azure-key-vault
-              kind: SecretStore
+              name: google
+              kind: ClusterSecretStore
             target:
               name: ${{ steps.names.outputs.resource_name }}-credentials
               creationPolicy: Owner
@@ -111,8 +149,8 @@ jobs:
             labels:
               app.kubernetes.io/managed-by: github-actions
               provisioned-by: slack-bot
-              slack-user-id: ${{ inputs.slack_user_id }}
-              request-id: ${{ inputs.request_id }}
+              slack-user-id: ${{ steps.names.outputs.sanitized_slack_user_id }}
+              request-id: ${{ steps.names.outputs.sanitized_request_id }}
           spec:
             forProvider:
               source: Remote

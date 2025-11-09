@@ -11,8 +11,8 @@ metadata:
 spec:
   refreshInterval: 1h
   secretStoreRef:
-    name: google-secret-manager  # or aws-secret-manager, azure-key-vault
-    kind: SecretStore
+    name: google  # or aws-secret-manager, azure-key-vault
+    kind: ClusterSecretStore
   target:
     name: azure-sb-U08KDT7FCT1-1762712166-credentials
     creationPolicy: Owner
